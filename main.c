@@ -432,9 +432,11 @@ int main()
         char erro_temp_str[20]; // Buffer para armazenar o valor como string
         char set_point_str[20];
         char y_prev_str[20];
+        char defuzzificada_str[20];
         sprintf(erro_temp_str, "E: %.2f ", erro_temp); // Formata o valor de erro_temp para string com 2 casas decimais
         sprintf(set_point_str, "SP: %.2f", set_point);
         sprintf(y_prev_str, "TA: %.2f", y_prev1);
+        sprintf(defuzzificada_str, "C %.2f", defuzzificada);
 
     restart:
 
@@ -447,12 +449,11 @@ int main()
             y_prev_str // Aqui usamos o texto formatado com o valor de erro_temp
         };
 
-        int p = 0;
-        for (uint i = 0; i < count_of(text); i++)
-        {
-            ssd1306_draw_string(ssd, 5, p, text[i]);
-            p += 8;
-        }
+            ssd1306_draw_string(ssd, 5, 0, set_point_str);
+            ssd1306_draw_string(ssd, 5, 16, y_prev_str);
+            ssd1306_draw_string(ssd, 5, 32, erro_temp_str);
+            ssd1306_draw_string(ssd, 5, 48, defuzzificada_str);
+            
 
         // Renderiza o conteúdo na tela
         render_on_display(ssd, &frame_area);
