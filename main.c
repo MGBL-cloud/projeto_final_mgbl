@@ -68,7 +68,7 @@ float r_a[size];
 float r_ma[size];
 float agreg[size];
 double vi;
-
+//sjdjsdj
 // Definição dos parâmetros para modelagem da planta de temperatura
 float a1 = 1.4614;
 float a2 = -0.4798;
