@@ -56,20 +56,6 @@ float variacao_erro_positiva;
 // Declaração das variáveis que armazenam o resultado da implicação das regras SE-ENTÃO
 float regra1, regra2, regra3, regra4, regra5, regra6, regra7, regra8, regra9, regra10;
 float regra11, regra12, regra13, regra14, regra15;
-//float regra2;
-//float regra3;
-//float regra4;
-//float regra5;
-//float regra6;
-//float regra7;
-//float regra8;
-//float regra9;
-//float regra10;
-//float regra11;
-//float regra12;
-//float regra13;
-//float regra14;
-//float regra15;
 
 // Variáveis para defuzzificação
 float numerador;
