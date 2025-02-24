@@ -429,10 +429,10 @@ int main()
         y_prev1 = y;
         u_prev = u;
 
-        //printf("O valor da temperatura desejada é = %f\n", set_point)
-        // printf("O valor da temperatura atual é = %f\n", y_prev1);
-        printf("Erro = %f\n", erro_temp);
-        // printf("Defuzzificação é %f \n",defuzzificada);
+        printf("O valor da temperatura desejada é = %f\n", set_point); /*Exibe no Serial Monitor o valor da Temperatura Desejada*/
+        printf("O valor da temperatura atual é = %f\n", y_prev1); /*Exibe no Serial Monitor o valor da Temperatura Atual*/
+        printf("Erro = %f\n", erro_temp); /* Exibe no Serial Monitor o Erro de Temperatura*/
+        printf("Defuzzificação é %f \n",defuzzificada); /*Exibe no Serial Monitor o Sinal de Controle*/
 
         /* Laço de acionamento dos LEDs mediante o valor do erro de temperatura */
         if (erro_temp >= 0 && erro_temp <= 5)
@@ -472,7 +472,7 @@ int main()
         char set_point_str[20];
         char y_prev_str[20];
         char defuzzificada_str[20];
-        sprintf(erro_temp_str, "E: %.2f ", erro_temp); /*Formata o valor das variaveis para uma string com 2 casas decimais*/ 
+        sprintf(erro_temp_str, "E: %.2f ", erro_temp); /*Erro de Temperatura*/ 
         sprintf(set_point_str, "SP: %.2f", set_point); /*Temperatura Desejada*/
         sprintf(y_prev_str, "TA: %.2f", y_prev1); /*Temperatura Atual*/
         sprintf(defuzzificada_str, "C %.2f", defuzzificada); /*Sinal de Controle*/
