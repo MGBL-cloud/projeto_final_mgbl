@@ -415,10 +415,7 @@ int main()
         y_prev1 = y;
         u_prev = u;
 
-        printf("O valor da temperatura desejada é = %f\n", set_point); /*Exibe no Serial Monitor o valor da Temperatura Desejada*/
-        printf("O valor da temperatura atual é = %f\n", y_prev1); /*Exibe no Serial Monitor o valor da Temperatura Atual*/
-        printf("Erro = %f\n", erro_temp); /* Exibe no Serial Monitor o Erro de Temperatura*/
-        printf("Defuzzificação é %f \n",defuzzificada); /*Exibe no Serial Monitor o Sinal de Controle*/
+        printf("Set Point = %f, Temperatura Atual = %f, Erro = %f, Sinal de Controle = %f \n", set_point, y_prev1, erro_temp, defuzzificada); /*Exibe no Serial Monitor as grandezas */
 
         /* Laço de acionamento dos LEDs mediante o valor do erro de temperatura */
         if (erro_temp >= 0 && erro_temp <= 5)
