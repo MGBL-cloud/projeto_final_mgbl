@@ -1,3 +1,12 @@
+/*
+PROPOSTA DE IMPLEMENTAÇÃO DE UM CONTROLADOR FUZZY PARA RASPBERRY PI PICO W: APLICAÇÃO EM UM SISTEMA TÉRMICO
+Capacitação Profissional em Sistemas Embarcados - EmbarcaTech - IFMA - PROJETO FINAL
+Autor: Marcos Gabriel Barros Louzeiro
+E-mail: marcoslouzeiro3@gmail.com
+Data: 09/02/2025
+*/
+
+// Importação das bibliotecas necessárias a para a execução do algoritmo
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include <math.h>
@@ -9,58 +18,65 @@
 #include "inc/ssd1306.h"
 #include "hardware/i2c.h"
 
+// Definição dos pinos de comunicação I2C
 const uint I2C_SDA = 14;
 const uint I2C_SCL = 15;
 
+// Definição dos pinos dos LEDs RGB
 #define RED 13
 #define BLUE 12
 #define GREEN 11
 
-// Definição das constantes utilizadas no projeto
-#define size 1001
-#define AMOSTRAGEM 4;
-//
-int cont1;
+// Definição de constantes
+#define size 1001                // Tamanho dos vetores
+#define AMOSTRAGEM 4;           // Tempo de Amostragem
+int cont1;                      // Variável de controle para ciclos 
 
-// Definição das variáveis de entrada do sistema de inferência fuzzy Mamdani
-float set_point;
-float erro_temperatura;          // Variável de erro de temperatura definida como sendo E[n] = T[s] - T[y] Com amostragem discreta, sendo "T[s]" a temperatura de set point ou temperatura desejada e "T[y]"" é a temperatura tual
-float variacao_erro_temperatura; // Variável da variação do erro definida como: VE = T[y] - T[y-1]/T. Sendo T[y-1] a temperatura no estado anterior e "T" é o tempo de amostragem
-float temp_atual;
-float temp_anterior;
-float erro_temp;
-float var_erro_temp;
-// Definição das funções de pertinência da variável do erro de temperatura
+// Variáveis do sistema de inferência fuzzy
+float set_point;                   // Valor desejado de Temperatura definido pelo usuário   
+float erro_temperatura;           // Armazena a diferença entre a temperatura desejada e a temperatura atual
+float variacao_erro_temperatura; // Taxa de variação do erro 
+float temp_atual;               // Temperatura Atual
+float temp_anterior;           // Temperatura Anterior
+float erro_temp;              // Variável auxiliar que armazena o valor do erro de temperatura
+float var_erro_temp;         // Variável auxiliar que armazena o valor da variação do erro
+
+// Declaração das funções de pertinência para o erro de temperatura
 float erro_alto_negativo;
 float erro_baixo_negativo;
 float erro_zero;
 float erro_baixo_positivo;
 float erro_alto_positivo;
-// Definição das funções de pertinência da variável variação do erro de temperatura
+
+// Declaração das funções de pertinência para a variação do erro de temperatura
 float variacao_erro_negativa;
 float variacao_erro_zero;
 float variacao_erro_positiva;
-// Definição das variáveis que armazenam o resultado da interação das pertinências do erro e da variação do erro
-float regra1;
-float regra2;
-float regra3;
-float regra4;
-float regra5;
-float regra6;
-float regra7;
-float regra8;
-float regra9;
-float regra10;
-float regra11;
-float regra12;
-float regra13;
-float regra14;
-float regra15;
-// Definição das variáveis necessárias para o processo de defuzzificação
+
+// Declaração das variáveis que armazenam o resultado da implicação das regras SE-ENTÃO
+float regra1, regra2, regra3, regra4, regra5, regra6, regra7, regra8, regra9, regra10;
+float regra11, regra12, regra13, regra14, regra15;
+//float regra2;
+//float regra3;
+//float regra4;
+//float regra5;
+//float regra6;
+//float regra7;
+//float regra8;
+//float regra9;
+//float regra10;
+//float regra11;
+//float regra12;
+//float regra13;
+//float regra14;
+//float regra15;
+
+// Variáveis para defuzzificação
 float numerador;
 float denominador;
 float defuzzificada;
-// Definição dos vetores
+
+// Declaração dos vetores para gerar as saídas e o vetor de agregação
 float r_x[size];
 float r_mb[size];
 float r_b[size];
@@ -68,15 +84,17 @@ float r_a[size];
 float r_ma[size];
 float agreg[size];
 double vi;
-//sjdjsdj
-// Definição dos parâmetros para modelagem da planta de temperatura
+
+// Parâmetros da modelagem ARX da planta térmcia
 float a1 = 1.4614;
 float a2 = -0.4798;
 float b1 = 0.0216;
 
+/* Função para fuzzificação da entrada 1 do sistema que corresponde ao erro de temperatura
+ São utilizadas em sua maioria funções trapezoidais e triangulares pela simplicidade de implementação */
 void fuzzification_erro()
 {
-    if (erro_temperatura >= -70 && erro_temperatura <= -40)
+    if (erro_temperatura >= -70 && erro_temperatura <= -40) 
     {
         erro_alto_negativo = 1;
         erro_baixo_negativo = 0;
@@ -107,7 +125,6 @@ void fuzzification_erro()
         erro_zero = (20 - erro_temperatura) / 20;
         erro_baixo_positivo = (erro_temperatura) / 20;
         erro_alto_positivo = 0;
-        //    printf("Entrou aqui");
     }
     if (erro_temperatura >= 20 && erro_temperatura <= 40)
     {
@@ -127,6 +144,7 @@ void fuzzification_erro()
     }
 }
 
+/* Função para fuzzificação da variação da entrada 2 do sistema que é a variação do erro de temperatura*/
 void fuzzification_var_erro()
 {
     if (variacao_erro_temperatura >= -17.5 && variacao_erro_temperatura <= -5)
@@ -155,6 +173,9 @@ void fuzzification_var_erro()
     }
 }
 
+/*Função para realizar o processo de implicação de Mínimo, AND ou regra E
+A finalidade dessa função é selecionar o menor valor entre as pertinencias das duas entradas
+Este valor fica armazenado na variável correspondente da regra*/
 void implication()
 {
 
@@ -177,6 +198,7 @@ void implication()
     regra15 = fmin(erro_alto_positivo, variacao_erro_positiva);
 }
 
+/* Função para gerar o gráfico das pertinências da saída*/
 void saida()
 {
     cont1 = 0;
@@ -236,6 +258,9 @@ void saida()
     }
 }
 
+/* Função construída para realizar a etapa de agregação
+   Cada laço ele soma a contribuição das regras no vetor de agregação
+   Gerando a resposta não crisp*/
 void agregacao()
 {
     for (int i = 0; i < size; i++)
@@ -273,7 +298,7 @@ void agregacao()
     }
     for (int i = 0; i < size; i++)
     {
-        agreg[i] = fmax(agreg[i], fmin(regra9, r_a[i])); // ainda sem alterar
+        agreg[i] = fmax(agreg[i], fmin(regra9, r_a[i])); 
     }
     for (int i = 0; i < size; i++)
     {
@@ -301,6 +326,8 @@ void agregacao()
     }
 }
 
+/*  Função definida para realizar o processo de defuzzificação
+    A metodologia empregada é o método das Centroides (CoG)*/
 void defuzzificacao()
 {
     numerador = 0;
@@ -315,6 +342,9 @@ void defuzzificacao()
     defuzzificada = numerador / denominador;
 }
 
+/*  Função que agrega todos as outras funções definidas
+    Aqui são utilizadas as variáveis auxiliares definidas anteriormente
+    E retorna como o resultado da defuzzificação*/
 float controlador()
 {
     erro_temperatura = erro_temp;
@@ -330,8 +360,9 @@ float controlador()
     return defuzzificada;
 }
 
+/* Função Principal*/
 int main()
-{
+{   /*Inicialização e chamada das funções para serem executadas*/
     stdio_init_all();
     fuzzification_erro(erro_temperatura);
     fuzzification_var_erro(variacao_erro_temperatura);
@@ -340,10 +371,12 @@ int main()
     agregacao(regra1, regra2, regra3, regra4, regra5, regra6, regra7, regra8, regra9, regra10, regra11, regra12, regra13, regra14, regra15, r_mb, r_b, r_a, r_ma);
     defuzzificacao(numerador, denominador, cont1, agreg);
 
+    /*Inicialização dos LEDs RGB*/
     gpio_init(RED);
     gpio_init(BLUE);
     gpio_init(GREEN);
 
+    /*Definição dos pinos dos LEDs como saída*/
     gpio_set_dir(RED, GPIO_OUT);
     gpio_set_dir(BLUE, GPIO_OUT);
     gpio_set_dir(GREEN, GPIO_OUT);
@@ -351,29 +384,32 @@ int main()
     cont1 = 0;
     vi = 0.0;
     set_point = 0;
-    sleep_ms(10000);
+    sleep_ms(10000); /* O usuário deve aguardar 10 segundos após o ínicio da execução do algoritmo e digitar o valor de temperatura desejado*/
     printf("Digite o valor desejado de temperatura: ");
     scanf("%f", &set_point);
-    float y_prev1 = 30.0f;
+
+    /*Condições Iniciais do modelo ARX da planta térmica*/
+    float y_prev1 = 30.0f; /*A temperatura Inicia em 30°C*/
     float y_prev2 = 32.0f;
     float u_prev = 0.0f;
 
-    // Inicialização do i2c
+    /*Inicialização do I2C e outros parâmetros importantes */
     i2c_init(i2c1, ssd1306_i2c_clock * 1000);
     gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
     gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
     gpio_pull_up(I2C_SDA);
     gpio_pull_up(I2C_SCL);
 
-    // Processo de inicialização completo do OLED SSD1306
+    /* Inicialização do display OLED */
     ssd1306_init();
 
     while (true)
     {
-
+        /* Cálculo das entradas do Sistema de Inferência Fuzzy */
         erro_temp = set_point - y_prev1;
         var_erro_temp = (y_prev1 - y_prev2) / AMOSTRAGEM;
 
+        /* Normalização do parâmetro u da planta */
         float u = controlador(erro_temp, var_erro_temp);
         float un = u / 8.0f;
 
@@ -382,20 +418,23 @@ int main()
             un = 0.0f;
         }
 
-        float yn1 = (y_prev1 - 0.0) / (250.0f - 0.0f);
+        /* Normalização dos parâmetros y da planta */
+        float yn1 = (y_prev1 - 0.0) / (250.0f - 0.0f); /* Conversão do valor para se encaixar na faixa de temperatura de operação*/
         float yn2 = y_prev2 / 250.0f;
-        float yn = a1 * yn1 + a2 * yn2 + b1 * un;
+        float yn = a1 * yn1 + a2 * yn2 + b1 * un; /* Equação do modelo ARX */
         float y = yn * 250.0f;
 
+        /* Atualização dos parâmetros da planta*/
         y_prev2 = y_prev1;
         y_prev1 = y;
         u_prev = u;
 
-        // printf("O valor de y prévio é = %f\n", y_prev1);
+        //printf("O valor da temperatura desejada é = %f\n", set_point)
+        // printf("O valor da temperatura atual é = %f\n", y_prev1);
         printf("Erro = %f\n", erro_temp);
-        // printf("Variação do Erro = %f\n", var_erro_temp);
         // printf("Defuzzificação é %f \n",defuzzificada);
 
+        /* Laço de acionamento dos LEDs mediante o valor do erro de temperatura */
         if (erro_temp >= 0 && erro_temp <= 5)
         {
             gpio_put(GREEN, true);
@@ -428,18 +467,18 @@ int main()
         memset(ssd, 0, ssd1306_buffer_length);
         render_on_display(ssd, &frame_area);
 
-        // Converte o erro de temperatura para uma string
-        char erro_temp_str[20]; // Buffer para armazenar o valor como string
+        /*Conversão das variáveis para Strings e serem exibidas no display */
+        char erro_temp_str[20]; /* Buffer para armazenar o valor como uma string para aparecer no display*/
         char set_point_str[20];
         char y_prev_str[20];
         char defuzzificada_str[20];
-        sprintf(erro_temp_str, "E: %.2f ", erro_temp); // Formata o valor de erro_temp para string com 2 casas decimais
-        sprintf(set_point_str, "SP: %.2f", set_point);
-        sprintf(y_prev_str, "TA: %.2f", y_prev1);
-        sprintf(defuzzificada_str, "C %.2f", defuzzificada);
+        sprintf(erro_temp_str, "E: %.2f ", erro_temp); /*Formata o valor das variaveis para uma string com 2 casas decimais*/ 
+        sprintf(set_point_str, "SP: %.2f", set_point); /*Temperatura Desejada*/
+        sprintf(y_prev_str, "TA: %.2f", y_prev1); /*Temperatura Atual*/
+        sprintf(defuzzificada_str, "C %.2f", defuzzificada); /*Sinal de Controle*/
 
     restart:
-
+        /*Vetor de Strings contendo as informações a serem exibidas*/
         char *text[] = {
             "Erro:",
             erro_temp_str,
@@ -448,16 +487,16 @@ int main()
             "T.Atual:",
             y_prev_str // Aqui usamos o texto formatado com o valor de erro_temp
         };
-
-            ssd1306_draw_string(ssd, 5, 0, set_point_str);
-            ssd1306_draw_string(ssd, 5, 16, y_prev_str);
-            ssd1306_draw_string(ssd, 5, 32, erro_temp_str);
-            ssd1306_draw_string(ssd, 5, 48, defuzzificada_str);
+            /*Desenha os valores formatos no display OLED em posições específicas*/
+            ssd1306_draw_string(ssd, 5, 0, set_point_str); /*Temperatura Desejada na primeira Linha*/
+            ssd1306_draw_string(ssd, 5, 16, y_prev_str); /* Temperatura atual na segunda linha*/
+            ssd1306_draw_string(ssd, 5, 32, erro_temp_str); /* Erro de Temperatura na terceira Linha*/
+            ssd1306_draw_string(ssd, 5, 48, defuzzificada_str); /* Sinal de Controle na quarta linha*/
             
 
-        // Renderiza o conteúdo na tela
+        /*Atualiza o display com as informações desenhadas*/ 
         render_on_display(ssd, &frame_area);
-
+        /*Aguarda 1 segundo antes de atualizar a tela novamente*/
         sleep_ms(1000);
     }
 }
